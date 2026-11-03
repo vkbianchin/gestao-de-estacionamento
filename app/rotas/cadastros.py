@@ -1,0 +1,100 @@
+from flask import Blueprint, request, jsonify, session
+from ..permissoes import exigir
+from ..seguranca import exigir_login
+from ..servicos import cadastros, crud, manutencao
+from ..erros import ErroNegocio
+
+bp=Blueprint("cadastros",__name__)
+
+@bp.get("/api/clientes")
+@exigir("cadastros")
+def clientes(): return jsonify(crud.listar("clientes"))
+
+@bp.post("/api/clientes")
+@exigir("cadastros")
+def criar_cliente(): return jsonify({"id":cadastros.criar_cliente(request.get_json(force=True),exigir_login())}),201
+
+@bp.get("/api/veiculos")
+@exigir("cadastros")
+def veiculos(): return jsonify(crud.listar("veiculos"))
+
+@bp.post("/api/veiculos")
+@exigir("cadastros")
+def criar_veiculo(): return jsonify({"id":cadastros.criar_veiculo(request.get_json(force=True),exigir_login())}),201
+
+@bp.get("/api/catalogos/<nome>")
+@exigir("cadastros")
+def catalogo(nome):
+    try: return jsonify(cadastros.listar_catalogo(nome))
+    except ErroNegocio: raise
+
+
+@bp.post("/api/catalogos/tipos_veiculo")
+@exigir("precos")
+def criar_tipo_veiculo():
+    return jsonify({"id": cadastros.criar_item_catalogo("tipos_veiculo", request.get_json(force=True), exigir_login())}), 201
+
+@bp.post("/api/catalogos/<nome>")
+@exigir("cadastros")
+def criar_item_catalogo(nome):
+    return jsonify({"id": cadastros.criar_item_catalogo(nome, request.get_json(force=True), exigir_login())}), 201
+
+@bp.post("/api/planos")
+@exigir("precos")
+def criar_plano():
+    return jsonify({"id": cadastros.criar_plano(request.get_json(force=True), exigir_login())}), 201
+
+@bp.put("/api/planos/<int:plano_id>")
+@exigir("precos")
+def editar_plano(plano_id):
+    cadastros.editar_plano(plano_id, request.get_json(force=True), exigir_login())
+    return jsonify({"ok": True})
+
+@bp.post("/api/planos/<int:plano_id>/ativo")
+@exigir("precos")
+def alterar_situacao_plano(plano_id):
+    dados = request.get_json(force=True)
+    cadastros.alterar_situacao_plano(plano_id, bool(dados.get("ativo")), exigir_login())
+    return jsonify({"ok": True})
+
+
+@bp.get("/api/precos")
+@exigir("cadastros")
+def precos():
+    return jsonify(cadastros.listar_precos())
+
+@bp.post("/api/precos")
+@exigir("precos")
+def criar_preco():
+    return jsonify({"id": cadastros.criar_preco(request.get_json(force=True), exigir_login())}), 201
+
+@bp.put("/api/precos/<int:preco_id>")
+@exigir("precos")
+def editar_preco(preco_id):
+    cadastros.editar_preco(preco_id, request.get_json(force=True), exigir_login())
+    return jsonify({"ok": True})
+
+# --- edição e situação (ativo/inativo) -------------------------------------------------
+@bp.get("/api/clientes/<int:cid>")
+@exigir("cadastros")
+def obter_cliente(cid): return jsonify(manutencao.obter_cliente(cid))
+
+@bp.put("/api/clientes/<int:cid>")
+@exigir("cadastros")
+def editar_cliente(cid): return jsonify(manutencao.editar_cliente(cid, request.get_json(force=True), exigir_login()))
+
+@bp.post("/api/clientes/<int:cid>/ativo")
+@exigir("desativar")
+def situacao_cliente(cid): return jsonify(manutencao.alterar_situacao_cliente(cid, bool(request.get_json(force=True).get("ativo")), exigir_login()))
+
+@bp.get("/api/veiculos/<int:vid>")
+@exigir("cadastros")
+def obter_veiculo(vid): return jsonify(manutencao.obter_veiculo(vid))
+
+@bp.put("/api/veiculos/<int:vid>")
+@exigir("cadastros")
+def editar_veiculo(vid): return jsonify(manutencao.editar_veiculo(vid, request.get_json(force=True), exigir_login()))
+
+@bp.post("/api/veiculos/<int:vid>/ativo")
+@exigir("desativar")
+def situacao_veiculo(vid): return jsonify(manutencao.alterar_situacao_veiculo(vid, bool(request.get_json(force=True).get("ativo")), exigir_login()))
